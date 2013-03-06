@@ -1636,7 +1636,7 @@ bool PG::op_has_sufficient_caps(OpRequestRef op)
   string key = req->get_object_locator().key;
   if (key.length() == 0)
     key = req->get_oid().name;
-
+  dout(20) << "op_has_sufficient_caps " << *op->request << dendl;
   bool cap = caps.is_capable(pool.name, pool.auid, key,
 			     req->need_read_cap(),
 			     req->need_write_cap(),
