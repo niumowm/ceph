@@ -281,7 +281,7 @@ RGWOp *RGWHandler_Bucket::op_post()
 
 RGWOp *RGWHandler_Bucket::op_delete()
 {
-  if (s->args.sub_resource_exists("objects"))
+  if (s->args.sub_resource_exists("object"))
     return new RGWOp_Object_Remove;
 
   return new RGWOp_Bucket_Remove;
