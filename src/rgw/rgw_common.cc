@@ -455,7 +455,10 @@ int XMLArgs::parse()
           (name.compare("torrent") == 0) ||
           (name.compare("subusers") == 0) ||
           (name.compare("keys") == 0) ||
-          (name.compare("caps") == 0)) {
+          (name.compare("caps") == 0) ||
+          (name.compare("index") == 0) ||
+          (name.compare("policy") == 0) ||
+          (name.compare("objects") == 0)) {
         sub_resources[name] = val;
       } else if (name[0] == 'r') { // root of all evil
         if ((name.compare("response-content-type") == 0) ||
