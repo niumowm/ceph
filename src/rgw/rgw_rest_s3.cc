@@ -1736,6 +1736,9 @@ static const char *nonsigned_subresources[] = {
   "keys",
   "subusers",
   "caps",
+  "index",
+  "objects",
+  "policy",
   NULL
 };
 

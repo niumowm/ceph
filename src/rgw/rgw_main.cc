@@ -39,6 +39,7 @@
 #include "rgw_rest_admin.h"
 #include "rgw_rest_usage.h"
 #include "rgw_rest_user.h"
+#include "rgw_rest_bucket.h"
 #include "rgw_swift_auth.h"
 #include "rgw_swift.h"
 #include "rgw_log.h"
@@ -487,6 +488,7 @@ int main(int argc, const char **argv)
     RGWRESTMgr_Admin *admin_resource = new RGWRESTMgr_Admin;
     admin_resource->register_resource("usage", new RGWRESTMgr_Usage);
     admin_resource->register_resource("user", new RGWRESTMgr_User);
+    admin_resource->register_resource("bucket", new RGWRESTMgr_Bucket);
     rest.register_resource(g_conf->rgw_admin_entry, admin_resource);
   }
 
