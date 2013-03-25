@@ -23,7 +23,7 @@
 using namespace std;
 
 // define as static when RGWBucket implementation compete
-extern void rgw_get_buckets_obj(string& user_id, string& buckets_obj_id)
+void rgw_get_buckets_obj(string& user_id, string& buckets_obj_id)
 {
   buckets_obj_id = user_id;
   buckets_obj_id += RGW_BUCKETS_OBJ_PREFIX;
