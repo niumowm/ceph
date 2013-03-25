@@ -92,9 +92,9 @@ int rgw_read_user_buckets(RGWRados *store, string user_id, RGWUserBuckets& bucke
   if (need_stats) {
     map<string, RGWBucketEnt>& m = buckets.get_buckets();
     int r = store->update_containers_stats(m);
-    if (r < 0)
+    if (r < 0) {
       ldout(store->ctx(), 0) << "ERROR: could not get stats for buckets" << dendl;
-
+    }
   }
   return 0;
 }
@@ -224,12 +224,11 @@ int RGWBucket::create_bucket(string bucket_str, string& user_id, string& display
 
   ret = store->set_attr(NULL, obj, RGW_ATTR_ACL, aclbl);
   if (ret < 0) {
-    cerr << "couldn't set acl on bucket" << std::endl;
+    lderr(store->ctx()) << "ERROR: failed to set acl on bucket" << dendl;
+    goto done;
   }
 
   ret = rgw_add_bucket(store, user_id, bucket);
-
-  dout(20) << "ret=" << ret << dendl;
 
   if (ret == -EEXIST)
     ret = 0;
@@ -257,7 +256,7 @@ static void check_bad_user_bucket_mapping(RGWRados *store, const string& user_id
   RGWUserBuckets user_buckets;
   int ret = rgw_read_user_buckets(store, user_id, user_buckets, false);
   if (ret < 0) {
-    cerr << "failed to read user buckets: " << cpp_strerror(-ret) << std::endl;
+    ldout(store->ctx(), 0) << "failed to read user buckets: " << cpp_strerror(-ret) << dendl;
     return;
   }
 
@@ -271,7 +270,7 @@ static void check_bad_user_bucket_mapping(RGWRados *store, const string& user_id
     RGWBucketInfo bucket_info;
     int r = store->get_bucket_info(NULL, bucket.name, bucket_info);
     if (r < 0) {
-      cerr << "could not get bucket info for bucket=" << bucket << std::endl;
+      ldout(store->ctx(), 0) << "could not get bucket info for bucket=" << bucket << dendl;
       continue;
     }
 
@@ -366,14 +365,13 @@ int rgw_remove_bucket(RGWRados *store, rgw_bucket& bucket, bool delete_children)
 
   ret = store->delete_bucket(bucket);
   if (ret < 0) {
-    //cerr << "ERROR: could not remove bucket " << bucket.name << std::endl;
-
+    lderr(store->ctx()) << "ERROR: could not remove bucket " << bucket.name << dendl;
     return ret;
   }
 
   ret = rgw_remove_user_bucket_info(store, info.owner, bucket);
   if (ret < 0) {
-    //cerr << "ERROR: unable to remove user bucket information" << std::endl;
+    lderr(store->ctx()) << "ERROR: unable to remove user bucket information" << dendl;
   }
 
   return ret;
@@ -383,11 +381,6 @@ static void set_err_msg(std::string *sink, std::string msg)
 {
   if (sink && !msg.empty())
     *sink = msg;
-}
-
-RGWBucket::RGWBucket(RGWRados *storage, RGWBucketAdminOpState& op_state)
-{
-  init(storage, op_state);
 }
 
 int RGWBucket::init(RGWRados *storage, RGWBucketAdminOpState& op_state)
@@ -410,7 +403,7 @@ int RGWBucket::init(RGWRados *storage, RGWBucketAdminOpState& op_state)
   if (!bucket_name.empty()) {
     int r = store->get_bucket_info(NULL, bucket_name, bucket_info);
     if (r < 0) {
-      //set_err_msg(err_msg, "could not get bucket info for bucket=" + bucket_name);
+      ldout(store->ctx(), 0) << "could not get bucket info for bucket=" << bucket_name << dendl;
       return r;
     }
 
@@ -418,11 +411,13 @@ int RGWBucket::init(RGWRados *storage, RGWBucketAdminOpState& op_state)
   }
 
   if (!user_id.empty()) {
-    if (rgw_get_user_info_by_uid(store, user_id, info) < 0)
-      return -EINVAL;
+    int r = rgw_get_user_info_by_uid(store, user_id, info);
+    if (r < 0)
+      return r;
 
-    if (rgw_read_user_buckets(store, user_id, user_buckets, true) < 0) // FIXME: get stats based on show_stats 
-      return -1; // should correspond to 500 internal error
+    r = rgw_read_user_buckets(store, user_id, user_buckets, true);
+    if (r < 0)
+      return r;
 
     op_state.set_user_buckets(user_buckets);
     op_state.set_user_op();
@@ -437,7 +432,7 @@ int RGWBucket::init(RGWRados *storage, RGWBucketAdminOpState& op_state)
 int RGWBucket::link(RGWBucketAdminOpState& op_state, std::string *err_msg)
 {
   if (!op_state.is_user_op()) {
-    set_err_msg(err_msg, "empty user id or failure fetching user buckets"); // FIXME find way to separate errors
+    set_err_msg(err_msg, "empty user id");
     return -EINVAL;
   }
 
@@ -460,7 +455,7 @@ int RGWBucket::link(RGWBucketAdminOpState& op_state, std::string *err_msg)
      owner = policy.get_owner();
     } catch (buffer::error& err) {
       set_err_msg(err_msg, "couldn't decode policy");
-      return -EINVAL; // should actually correspond to 500 internal error
+      return -EIO;
     }
     r = rgw_remove_user_bucket_info(store, owner.get_id(), bucket);
     if (r < 0) {
@@ -470,8 +465,7 @@ int RGWBucket::link(RGWBucketAdminOpState& op_state, std::string *err_msg)
 
     // now update the user for the bucket...
     if (display_name.empty()) {
-      // send to (l)dout
-      // set_err_msg(err_msg, "WARNING: user " + info.user_id + " has no display name set"); // FIXME will probably not be caught
+      ldout(store->ctx(), 0) << "WARNING: user " << user_id << " has no display name set" << dendl;
     } else {
       policy.create_default(user_id, display_name);
 
@@ -491,7 +485,7 @@ int RGWBucket::link(RGWBucketAdminOpState& op_state, std::string *err_msg)
     // the bucket seems not to exist, so we should probably create it...
     r = create_bucket(bucket_name.c_str(), uid_str, display_name);
     if (r < 0)
-      set_err_msg(err_msg, "error linking bucket to user r=" + cpp_strerror(r)); // FIXME: decide if all errors should be +/-
+      set_err_msg(err_msg, "error linking bucket to user r=" + cpp_strerror(-r));
 
     return r;
   }
@@ -505,12 +499,13 @@ int RGWBucket::unlink(RGWBucketAdminOpState& op_state, std::string *err_msg)
 
   if (!op_state.is_user_op()) {
     set_err_msg(err_msg, "could not fetch user or user bucket info");
-    return -1; // FIXME: should correspond to 500 internal error
+    return -EINVAL;
   }
 
   int r = rgw_remove_user_bucket_info(store, user_id, bucket);
-  if (r < 0)
-    set_err_msg(err_msg, "error unlinking bucket" + cpp_strerror(r)); // FIXME: decide if all errors should be +/-
+  if (r < 0) {
+    set_err_msg(err_msg, "error unlinking bucket" + cpp_strerror(-r)); 
+  }
 
   return r;
 }
@@ -522,8 +517,8 @@ int RGWBucket::remove(RGWBucketAdminOpState& op_state, std::string *err_msg)
 
   int ret = rgw_remove_bucket(store, bucket, delete_children);
   if (ret < 0) {
-    set_err_msg(err_msg, "unable to remove bucket" + cpp_strerror(ret)); // FIXME: decide if all errors should be +/-
-    return ret; // FIXME: should correspond to 500 internal error
+    set_err_msg(err_msg, "unable to remove bucket" + cpp_strerror(-ret));
+    return ret;
   }
 
   return 0;
@@ -536,8 +531,8 @@ int RGWBucket::remove_object(RGWBucketAdminOpState& op_state, std::string *err_m
 
   int ret = rgw_remove_object(store, bucket, object_name);
   if (ret < 0) {
-    set_err_msg(err_msg, "unable to remove object" + cpp_strerror(ret)); // FIXME: decide if all errors should be +/- 
-    return ret; // FIXME: should correspond to 500 internal error
+    set_err_msg(err_msg, "unable to remove object" + cpp_strerror(-ret));
+    return ret;
   }
 
   return 0;
@@ -657,7 +652,7 @@ int RGWBucket::check_bad_index_multipart(RGWBucketAdminOpState& op_state,
     int r = store->remove_objs_from_index(bucket, objs_to_unlink);
     if (r < 0) {
       set_err_msg(err_msg, "ERROR: remove_obj_from_index() returned error: " +
-              cpp_strerror(r)); // FIXME +/- error code
+              cpp_strerror(-r));
    
       return r; 
     }
@@ -792,18 +787,18 @@ int RGWBucket::get_policy(RGWBucketAdminOpState& op_state, ostringstream& o)
   bufferlist bl;
   rgw_obj obj(bucket, object_name);
   int ret = store->get_attr(NULL, obj, RGW_ATTR_ACL, bl);
+  if (ret < 0)
+    return ret;
 
   RGWAccessControlPolicy_S3 policy(g_ceph_context);
-  if (ret >= 0) {
-    bufferlist::iterator iter = bl.begin();
-    try {
-      policy.decode(iter);
-    } catch (buffer::error& err) {
-      dout(0) << "ERROR: caught buffer::error, could not decode policy" << dendl;
-      return -EIO;
-    }
-    policy.to_xml(o);
+  bufferlist::iterator iter = bl.begin();
+  try {
+    policy.decode(iter);
+  } catch (buffer::error& err) {
+    dout(0) << "ERROR: caught buffer::error, could not decode policy" << dendl;
+    return -EIO;
   }
+  policy.to_xml(o);
 
   return 0;
 }
@@ -815,14 +810,19 @@ int RGWBucket::get_policy(RGWBucketAdminOpState& op_state, ostringstream& o)
 int RGWBucketAdminOp::get_policy(RGWRados *store, RGWBucketAdminOpState& op_state,
                   RGWFormatterFlusher& flusher)
 {
-  RGWBucket bucket(store, op_state);
+  RGWBucket bucket;
+
+  int ret = bucket.init(store, op_state);
+  if (ret < 0)
+    return ret;
+
   Formatter *formatter = flusher.get_formatter();
 
   flusher.start(0);
 
   std::ostringstream policy_stream;
 
-  int ret = bucket.get_policy(op_state, policy_stream);
+  ret = bucket.get_policy(op_state, policy_stream);
   if (ret < 0)
     return ret;
 
@@ -833,14 +833,22 @@ int RGWBucketAdminOp::get_policy(RGWRados *store, RGWBucketAdminOpState& op_stat
 
 int RGWBucketAdminOp::unlink(RGWRados *store, RGWBucketAdminOpState& op_state)
 {
-  RGWBucket bucket(store, op_state);
+  RGWBucket bucket;
+
+  int ret = bucket.init(store, op_state);
+  if (ret < 0)
+    return ret;
 
   return bucket.unlink(op_state);
 }
 
 int RGWBucketAdminOp::link(RGWRados *store, RGWBucketAdminOpState& op_state)
 {
-  RGWBucket bucket(store, op_state);
+  RGWBucket bucket;
+
+  int ret = bucket.init(store, op_state);
+  if (ret < 0)
+    return ret;
 
   return bucket.link(op_state);
 
@@ -855,7 +863,11 @@ int RGWBucketAdminOp::check_index(RGWRados *store, RGWBucketAdminOpState& op_sta
   map<RGWObjCategory, RGWBucketStats> calculated_stats;
   list<std::string> objs_to_unlink;
 
-  RGWBucket bucket(store, op_state);
+  RGWBucket bucket;
+
+  ret = bucket.init(store, op_state);
+  if (ret < 0)
+    return ret;
 
   Formatter *formatter = flusher.get_formatter();
   flusher.start(0);
@@ -886,14 +898,22 @@ int RGWBucketAdminOp::check_index(RGWRados *store, RGWBucketAdminOpState& op_sta
 
 int RGWBucketAdminOp::remove_bucket(RGWRados *store, RGWBucketAdminOpState& op_state)
 {
-  RGWBucket bucket(store, op_state);
+  RGWBucket bucket;
+
+  int ret = bucket.init(store, op_state);
+  if (ret < 0)
+    return ret;
 
   return bucket.remove(op_state);
 }
 
 int RGWBucketAdminOp::remove_object(RGWRados *store, RGWBucketAdminOpState& op_state)
 {
-  RGWBucket bucket(store, op_state);
+  RGWBucket bucket;
+
+  int ret = bucket.init(store, op_state);
+  if (ret < 0)
+    return ret;
 
   return bucket.remove_object(op_state);
 }

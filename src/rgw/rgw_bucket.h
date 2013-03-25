@@ -195,7 +195,7 @@ class RGWBucket
 private:
 
 public:
-  RGWBucket(RGWRados *storage, RGWBucketAdminOpState& op_state);
+  RGWBucket() : store(NULL), failure(false) {}
   int init(RGWRados *storage, RGWBucketAdminOpState& op_state);
 
   int create_bucket(string bucket_str, string& user_id, string& display_name);
