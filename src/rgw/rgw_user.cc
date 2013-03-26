@@ -1615,7 +1615,13 @@ int RGWUser::execute_add(RGWUserAdminOpState& op_state, std::string *err_msg)
 
   // fail if the user exists already
   if (op_state.has_existing_user()) {
+    if ((user_email.empty() || old_info.user_email == user_email) &&
+        old_info.display_name == display_name) {
+      return execute_modify(op_state, err_msg);
+    }
+
     set_err_msg(err_msg, "user: " + op_state.user_id + " exists");
+
     return -EEXIST;
   }
 
@@ -1816,15 +1822,11 @@ int RGWUser::execute_modify(RGWUserAdminOpState& op_state, std::string *err_msg)
 
   // make sure we are not adding a duplicate email
   if (!op_email.empty() && !same_email) {
-
-/*
-    // this check causes a cluster fault
     ret = rgw_get_user_info_by_email(store, op_email, duplicate_check);
     if (ret >= 0) {
       set_err_msg(err_msg, "cannot add duplicate email");
       return -EEXIST;
     }
-*/
 
     user_info.user_email = op_email;
   }
