@@ -397,6 +397,8 @@ int RGWBucket::init(RGWRados *storage, RGWBucketAdminOpState& op_state)
   bucket_name = op_state.get_bucket_name();
   RGWUserBuckets user_buckets;
 
+  cerr << __FILE__ << ":" << __LINE__ << " bucket_name=" << bucket_name << std::endl;
+
   if (bucket_name.empty() && user_id.empty())
     return -EINVAL;
 
@@ -420,9 +422,6 @@ int RGWBucket::init(RGWRados *storage, RGWBucketAdminOpState& op_state)
       return r;
 
     op_state.set_user_buckets(user_buckets);
-    op_state.set_user_op();
-  } else {
-    op_state.set_system_op();
   }
 
   clear_failure();
@@ -953,13 +952,19 @@ static int bucket_stats(RGWRados *store, std::string&  bucket_name, Formatter *f
 int RGWBucketAdminOp::info(RGWRados *store, RGWBucketAdminOpState& op_state,
                   RGWFormatterFlusher& flusher)
 {
+  RGWBucket bucket;
+
+  int ret = bucket.init(store, op_state);
+  if (ret < 0)
+    return ret;
+  string bucket_name = op_state.get_bucket_name();
+
   Formatter *formatter = flusher.get_formatter();
   flusher.start(0);
 
   formatter->open_array_section("buckets");
 
   bool show_stats = op_state.will_fetch_stats();
-
   if (op_state.is_user_op()) {
     RGWUserBuckets buckets = op_state.get_user_buckets();
     map<string, RGWBucketEnt>& m = buckets.get_buckets();
@@ -972,7 +977,9 @@ int RGWBucketAdminOp::info(RGWRados *store, RGWBucketAdminOpState& op_state,
         bucket_stats(store, obj_name, formatter);
 
     }
-  } else if (op_state.is_system_op()) {
+  } else if (!bucket_name.empty()) {
+    bucket_stats(store, bucket_name, formatter);
+  } else {
     RGWAccessHandle handle;
 
     if (store->list_buckets_init(&handle) > 0) {

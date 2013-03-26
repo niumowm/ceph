@@ -108,20 +108,16 @@ struct RGWBucketAdminOpState {
   bool stat_buckets;
   bool check_objects;
   bool fix_index;
-  bool system_op;
-  bool user_op;
   bool delete_child_objects;
   bool bucket_stored;
 
   rgw_bucket bucket;
   RGWUserBuckets buckets;
 
-  void set_fetch_stats() { stat_buckets = true; };
-  void set_check_objects() { check_objects = true; };
-  void set_fix_index() { fix_index = true; };
-  void set_user_op() { user_op = true; };
-  void set_system_op() { system_op = true; };
-  void set_delete_children() { delete_child_objects = true; };
+  void set_fetch_stats() { stat_buckets = true; }
+  void set_check_objects() { check_objects = true; }
+  void set_fix_index() { fix_index = true; }
+  void set_delete_children() { delete_child_objects = true; }
 
   void set_user_id(std::string& user_id) {
     if (!user_id.empty())
@@ -154,27 +150,13 @@ struct RGWBucketAdminOpState {
   bool will_fix_index() { return fix_index; };
   bool will_delete_children() { return delete_child_objects; };
   bool will_check_objects() { return check_objects; };
-  bool is_user_op() { return user_op; };
-  bool is_system_op() { return system_op; }; 
+  bool is_user_op() { return !uid.empty(); };
+  bool is_system_op() { return uid.empty(); }; 
   bool has_bucket_stored() { return bucket_stored; };
 
-  RGWBucketAdminOpState()
-  {
-    list_buckets = false;
-    stat_buckets = false;
-    check_objects = false;
-    fix_index = false;
-    system_op = false;
-    user_op = false;
-    delete_child_objects = false;
-    bucket_stored = false;
-
-    // FIXME: try calling .empty() on strings rather than doing something that looks so silly
-    uid = "";
-    display_name = "";
-    object_name = "";
-    bucket_name = "";
-  }
+  RGWBucketAdminOpState() : list_buckets(false), stat_buckets(false), check_objects(false), 
+                            fix_index(false), delete_child_objects(false),
+                            bucket_stored(false)  {}
 };
 
 /*
