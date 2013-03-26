@@ -34,15 +34,9 @@ void RGWOp_Bucket_Info::execute()
   RESTArgs::get_bool(s, "stats", false, &fetch_stats); 
 
 
-  // FIXME: no double checking
-  if (!uid.empty())
-    op_state.set_user_id(uid);
-
-  if (!bucket.empty())
-    op_state.set_bucket_name(bucket);
-
-  if (fetch_stats)
-    op_state.set_fetch_stats();
+  op_state.set_user_id(uid);
+  op_state.set_bucket_name(bucket);
+  op_state.set_fetch_stats(fetch_stats);
 
   http_ret = RGWBucketAdminOp::info(store, op_state, flusher);
 }
@@ -71,12 +65,8 @@ void RGWOp_Get_Policy::execute()
   RESTArgs::get_string(s, "bucket", bucket, &bucket);
   RESTArgs::get_string(s, "object", object, &object);
 
-  // FIXME: no double checking
-  if (!bucket.empty())
-    op_state.set_bucket_name(bucket);
-
-  if (!object.empty())
-    op_state.set_object(object);
+  op_state.set_bucket_name(bucket);
+  op_state.set_object(object);
 
   http_ret = RGWBucketAdminOp::get_policy(store, op_state, flusher);
 }
@@ -108,15 +98,9 @@ void RGWOp_Check_Bucket_Index::execute()
   RESTArgs::get_bool(s, "fix", false, &fix_index);
   RESTArgs::get_bool(s, "check-objects", false, &check_objects);
 
-  // FIXME: don't do double argument checking
-  if (!bucket.empty())
-    op_state.set_bucket_name(bucket);
-
-  if (fix_index)
-    op_state.set_fix_index();
-
-  if (check_objects)
-    op_state.set_check_objects();
+  op_state.set_bucket_name(bucket);
+  op_state.set_fix_index(fix_index);
+  op_state.set_check_objects(check_objects);
 
   http_ret = RGWBucketAdminOp::check_index(store, op_state, flusher);
 }
@@ -145,12 +129,8 @@ void RGWOp_Bucket_Link::execute()
   RESTArgs::get_string(s, "uid", uid, &uid);
   RESTArgs::get_string(s, "bucket", bucket, &bucket);
 
-  // FIXME: don't do double argument checking
-  if (!uid.empty())
-    op_state.set_user_id(uid);
-
-  if (!bucket.empty())
-    op_state.set_bucket_name(bucket);
+  op_state.set_user_id(uid);
+  op_state.set_bucket_name(bucket);
 
   http_ret = RGWBucketAdminOp::link(store, op_state);
 }
@@ -179,12 +159,8 @@ void RGWOp_Bucket_Unlink::execute()
   RESTArgs::get_string(s, "uid", uid, &uid);
   RESTArgs::get_string(s, "bucket", bucket, &bucket);
 
-  // FIXME: don't do double argument checking
-  if (!uid.empty())
-    op_state.set_user_id(uid);
-
-  if (!bucket.empty())
-    op_state.set_bucket_name(bucket);
+  op_state.set_user_id(uid);
+  op_state.set_bucket_name(bucket);
 
   http_ret = RGWBucketAdminOp::unlink(store, op_state);
 }
@@ -213,12 +189,8 @@ void RGWOp_Bucket_Remove::execute()
   RESTArgs::get_string(s, "bucket", bucket, &bucket);
   RESTArgs::get_bool(s, "purge-objects", false, &delete_children);
 
-  // FIXME: no double checking
-  if (!bucket.empty())
-    op_state.set_bucket_name(bucket);
-
-  if (delete_children)
-    op_state.set_delete_children();
+  op_state.set_bucket_name(bucket);
+  op_state.set_delete_children(delete_children);
 
   http_ret = RGWBucketAdminOp::remove_bucket(store, op_state);
 }
@@ -247,12 +219,8 @@ void RGWOp_Object_Remove::execute()
   RESTArgs::get_string(s, "bucket", bucket, &bucket);
   RESTArgs::get_string(s, "object", object, &object);
 
-  // FIXME: no double checking
-  if (!bucket.empty())
-    op_state.set_bucket_name(bucket);
-
-  if (!object.empty())
-    op_state.set_object(object);
+  op_state.set_bucket_name(bucket);
+  op_state.set_object(object);
 
   http_ret = RGWBucketAdminOp::remove_object(store, op_state);
 }

@@ -397,8 +397,6 @@ int RGWBucket::init(RGWRados *storage, RGWBucketAdminOpState& op_state)
   bucket_name = op_state.get_bucket_name();
   RGWUserBuckets user_buckets;
 
-  cerr << __FILE__ << ":" << __LINE__ << " bucket_name=" << bucket_name << std::endl;
-
   if (bucket_name.empty() && user_id.empty())
     return -EINVAL;
 
@@ -767,13 +765,13 @@ int RGWBucketAdminOp::get_policy(RGWRados *store, RGWBucketAdminOpState& op_stat
 
   Formatter *formatter = flusher.get_formatter();
 
-  flusher.start(0);
-
   std::ostringstream policy_stream;
 
   ret = bucket.get_policy(op_state, policy_stream);
   if (ret < 0)
     return ret;
+
+  flusher.start(0);
 
   formatter->dump_string("policy", policy_stream.str());
 

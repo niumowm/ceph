@@ -114,22 +114,20 @@ struct RGWBucketAdminOpState {
   rgw_bucket bucket;
   RGWUserBuckets buckets;
 
-  void set_fetch_stats() { stat_buckets = true; }
-  void set_check_objects() { check_objects = true; }
-  void set_fix_index() { fix_index = true; }
-  void set_delete_children() { delete_child_objects = true; }
+  void set_fetch_stats(bool value) { stat_buckets = value; }
+  void set_check_objects(bool value) { check_objects = value; }
+  void set_fix_index(bool value) { fix_index = value; }
+  void set_delete_children(bool value) { delete_child_objects = value; }
 
   void set_user_id(std::string& user_id) {
     if (!user_id.empty())
       uid = user_id;
   }
   void set_bucket_name(std::string& bucket_str) {
-    if (!bucket_str.empty())
-      bucket_name = bucket_str; 
+    bucket_name = bucket_str; 
   }
   void set_object(std::string& object_str) {
-    if (!object_name.empty())
-      object_name = object_str;
+    object_name = object_str;
   }
 
   std::string& get_user_id() { return uid; };

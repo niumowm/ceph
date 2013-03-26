@@ -710,14 +710,9 @@ int main(int argc, char **argv)
 
 
   /* populate user operation */
-  if (!bucket_name.empty())
-    bucket_op.set_bucket_name(bucket_name);
-
-  if (check_objects)
-    bucket_op.set_check_objects();
-
-  if (delete_child_objects)
-    bucket_op.set_delete_children();
+  bucket_op.set_bucket_name(bucket_name);
+  bucket_op.set_check_objects(check_objects);
+  bucket_op.set_delete_children(delete_child_objects);
 
   // required to gather errors from operations
   std::string err_msg;
@@ -838,7 +833,7 @@ int main(int argc, char **argv)
 
   if (opt_cmd == OPT_BUCKETS_LIST || opt_cmd == OPT_BUCKET_STATS) {
     if (opt_cmd == OPT_BUCKET_STATS)
-      bucket_op.set_fetch_stats();
+      bucket_op.set_fetch_stats(true);
 
     RGWBucketAdminOp::info(store, bucket_op, f);
   }
