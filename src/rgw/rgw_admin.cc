@@ -824,7 +824,6 @@ int main(int argc, char **argv)
       cerr << "could not fetch user info: " << err_msg << std::endl;
       return -ret;
     }
-
     show_user_info(info, formatter);
   }
 
@@ -832,7 +831,7 @@ int main(int argc, char **argv)
     RGWBucketAdminOp::get_policy(store, bucket_op, f);
   }
 
-  if (opt_cmd == OPT_BUCKETS_LIST || OPT_BUCKET_STATS) {
+  if (opt_cmd == OPT_BUCKETS_LIST || opt_cmd == OPT_BUCKET_STATS) {
     if (opt_cmd == OPT_BUCKET_STATS)
       bucket_op.set_fetch_stats();
 
