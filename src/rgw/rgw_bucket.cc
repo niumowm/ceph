@@ -660,56 +660,6 @@ int RGWBucket::check_bad_index_multipart(RGWBucketAdminOpState& op_state,
   return 0;
 }
 
-#warning "incorporate this code"
-#if 0
-static bool bucket_object_check_filter(const string& name)
-{
-  string ns;
-  string obj = name;
-  return rgw_obj::translate_raw_obj_to_obj_in_ns(obj, ns);
-}
-
-+    if (check_objects) {
-+      if (!fix) {
-+       cerr << "--check-objects flag requires --fix" << std::endl;
-+       return 1;
-+      }
-+#define BUCKET_TAG_TIMEOUT 30
-+      cout << "Checking objects, decreasing bucket 2-phase commit timeout.\n"
-+              "** Note that timeout will reset only when operation completes successfully **" << std::endl;
-+
-+      store->cls_obj_set_bucket_tag_timeout(bucket, BUCKET_TAG_TIMEOUT);
-+
-+      string prefix;
-+      string marker;
-+      bool is_truncated = true;
-+
-+      while (is_truncated) {
-+       map<string, RGWObjEnt> result;
-+       string ns;
-+       int r = store->cls_bucket_list(bucket, marker, prefix, 1000, 
-+                                   result, &is_truncated, &marker,
-+                                    bucket_object_check_filter);
-+
-+       if (r < 0 && r != -ENOENT) {
-+          cerr << "ERROR: failed operation r=" << r << std::endl;
-+       }
-+
-+       if (r == -ENOENT)
-+         break;
-+
-+       map<string, RGWObjEnt>::iterator iter;
-+       for (iter = result.begin(); iter != result.end(); ++iter) {
-+         cout << iter->first << std::endl;
-+       }
-+
-+      }
-+
-+      store->cls_obj_set_bucket_tag_timeout(bucket, 0);
-+
-+    }
-#endif
-
 int RGWBucket::check_object_index(RGWBucketAdminOpState& op_state,
         map<string, RGWObjEnt> result, std::string *err_msg)
 {
