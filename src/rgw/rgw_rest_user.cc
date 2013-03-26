@@ -28,9 +28,7 @@ void RGWOp_User_Info::execute()
 
   RESTArgs::get_string(s, "uid", uid, &uid);
 
-  // FIXME: no double checking
-  if (!uid.empty())
-    op_state.set_user_id(uid);
+  op_state.set_user_id(uid);
 
   http_ret = RGWUserAdminOp_User::info(store, op_state, flusher);
 }

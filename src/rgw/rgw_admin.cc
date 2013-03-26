@@ -701,7 +701,13 @@ int main(int argc, char **argv)
     user_op.set_suspension(true);
 
   // RGWUser to use for user operations
-  RGWUser user(store, user_op);
+  RGWUser user;
+  int ret = user.init(store, user_op);
+  if (ret < 0) {
+    cerr << "user.init failed: " << cpp_strerror(-ret) << std::endl;
+    return -ret;
+  }
+
 
   /* populate user operation */
   if (!bucket_name.empty())
@@ -716,7 +722,6 @@ int main(int argc, char **argv)
   // required to gather errors from operations
   std::string err_msg;
 
-  int ret;
   bool output_user_info = true;
 
   switch (opt_cmd) {

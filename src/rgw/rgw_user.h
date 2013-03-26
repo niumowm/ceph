@@ -514,11 +514,7 @@ private:
   RGWRados *store;
 
   string user_id;
-  bool failure;
   bool info_stored;
-
-  void set_failure() { failure = true; };
-  void clear_failure() { failure = false; };
 
   void set_populated() { info_stored = true; };
   void clear_populated() { info_stored = false; };
@@ -536,21 +532,16 @@ private:
   int execute_modify(RGWUserAdminOpState& op_state, std::string *err_msg);
 
 public:
-  RGWUser(RGWRados *storage, RGWUserAdminOpState& op_state);
-
-  /* this will need to be initialized at some point in order to be useful */
-  RGWUser(RGWRados *storage);
-
-  /* anonymous user info */
   RGWUser();
   ~RGWUser();
+
+  int init(RGWRados *storage, RGWUserAdminOpState& op_state);
 
   int init_storage(RGWRados *storage);
   int init(RGWUserAdminOpState& op_state);
   int init_members(RGWUserAdminOpState& op_state);
 
   RGWRados *get_store() { return store; };
-  bool has_failed() { return failure; };
 
   /* API Contracted Members */
   RGWUserCapPool *caps;
