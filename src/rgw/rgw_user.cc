@@ -1475,6 +1475,14 @@ int RGWUser::init(RGWUserAdminOpState& op_state)
     found = (rgw_get_user_info_by_access_key(store, access_key, user_info) >= 0);
 
   if (found) {
+    if ( (!uid.empty() && uid != user_info.user_id) ||
+         (!user_email.empty() && user_email != user_info.user_email)) {
+      user_info.clear();
+      found = false;
+    }
+  }
+
+  if (found) {
     op_state.set_existing_user();
     op_state.set_user_info(user_info);
     op_state.set_populated();
@@ -1785,7 +1793,7 @@ int RGWUser::execute_modify(RGWUserAdminOpState& op_state, std::string *err_msg)
   // ensure that the user info has been populated or is populate-able
   if (!op_state.has_existing_user() && !populated) {
     set_err_msg(err_msg, "user not found");
-    return -EINVAL;
+    return -ENOENT;
   }
 
   // if the user hasn't already been populated...attempt to
@@ -1806,18 +1814,19 @@ int RGWUser::execute_modify(RGWUserAdminOpState& op_state, std::string *err_msg)
   user_info = old_info;
 
   std::string old_email = old_info.user_email;
-  if (!old_email.empty())
+  if (!old_email.empty()) {
     same_email = (old_email.compare(op_email) == 0);
 
   // make sure we are not adding a duplicate email
-  if (!op_email.empty() && !same_email) {
-    ret = rgw_get_user_info_by_email(store, op_email, duplicate_check);
-    if (ret >= 0) {
-      set_err_msg(err_msg, "cannot add duplicate email");
-      return -EEXIST;
-    }
+    if (!same_email) {
+      ret = rgw_get_user_info_by_email(store, op_email, duplicate_check);
+      if (ret >= 0) {
+        set_err_msg(err_msg, "cannot add duplicate email");
+        return -EEXIST;
+      }
 
-    user_info.user_email = op_email;
+      user_info.user_email = op_email;
+    }
   }
 
   // update the remaining user info
@@ -1941,11 +1950,11 @@ int RGWUserAdminOp_User::info(RGWRados *store, RGWUserAdminOpState& op_state,
 
   Formatter *formatter = flusher.get_formatter();
 
-  flusher.start(0);
-
   ret = user.info(info, NULL);
   if (ret < 0)
     return ret;
+
+  flusher.start(0);
 
   dump_user_info(formatter, info);
   flusher.flush();
@@ -1964,8 +1973,6 @@ int RGWUserAdminOp_User::create(RGWRados *store, RGWUserAdminOpState& op_state,
 
   Formatter *formatter = flusher.get_formatter();
 
-  flusher.start(0);
-
   ret = user.add(op_state, NULL);
   if (ret < 0)
     return ret;
@@ -1973,6 +1980,8 @@ int RGWUserAdminOp_User::create(RGWRados *store, RGWUserAdminOpState& op_state,
   ret = user.info(info, NULL);
   if (ret < 0)
     return ret;
+
+  flusher.start(0);
 
   dump_user_info(formatter, info);
   flusher.flush();
@@ -1988,10 +1997,7 @@ int RGWUserAdminOp_User::modify(RGWRados *store, RGWUserAdminOpState& op_state,
   int ret = user.init(store, op_state);
   if (ret < 0)
     return ret;
-
   Formatter *formatter = flusher.get_formatter();
-
-  flusher.start(0);
 
   ret = user.modify(op_state, NULL);
   if (ret < 0)
@@ -2000,6 +2006,8 @@ int RGWUserAdminOp_User::modify(RGWRados *store, RGWUserAdminOpState& op_state,
   ret = user.info(info, NULL);
   if (ret < 0)
     return ret;
+
+  flusher.start(0);
 
   dump_user_info(formatter, info);
   flusher.flush();
@@ -2033,8 +2041,6 @@ int RGWUserAdminOp_Subuser::create(RGWRados *store, RGWUserAdminOpState& op_stat
 
   Formatter *formatter = flusher.get_formatter();
 
-  flusher.start(0);
-
   ret = user.subusers->add(op_state, NULL);
   if (ret < 0)
     return ret;
@@ -2042,6 +2048,8 @@ int RGWUserAdminOp_Subuser::create(RGWRados *store, RGWUserAdminOpState& op_stat
   ret = user.info(info, NULL);
   if (ret < 0)
     return ret;
+
+  flusher.start(0);
 
   dump_subusers_info(formatter, info);
   flusher.flush();
@@ -2060,8 +2068,6 @@ int RGWUserAdminOp_Subuser::modify(RGWRados *store, RGWUserAdminOpState& op_stat
 
   Formatter *formatter = flusher.get_formatter();
 
-  flusher.start(0);
-
   ret = user.subusers->modify(op_state, NULL);
   if (ret < 0)
     return ret;
@@ -2070,6 +2076,8 @@ int RGWUserAdminOp_Subuser::modify(RGWRados *store, RGWUserAdminOpState& op_stat
   if (ret < 0)
     return ret;
   
+  flusher.start(0);
+
   dump_subusers_info(formatter, info);
   flusher.flush();
 
@@ -2104,8 +2112,6 @@ int RGWUserAdminOp_Key::create(RGWRados *store, RGWUserAdminOpState& op_state,
 
   Formatter *formatter = flusher.get_formatter();
 
-  flusher.start(0);
-
   ret = user.keys->add(op_state, NULL);
   if (ret < 0)
     return ret;
@@ -2113,6 +2119,8 @@ int RGWUserAdminOp_Key::create(RGWRados *store, RGWUserAdminOpState& op_state,
   ret = user.info(info, NULL);
   if (ret < 0)
     return ret;
+
+  flusher.start(0);
 
   int key_type = op_state.get_key_type();
 
@@ -2155,8 +2163,6 @@ int RGWUserAdminOp_Caps::add(RGWRados *store, RGWUserAdminOpState& op_state,
 
   Formatter *formatter = flusher.get_formatter();
 
-  flusher.start(0);
-
   ret = user.caps->add(op_state, NULL);
   if (ret < 0)
     return ret;
@@ -2164,6 +2170,8 @@ int RGWUserAdminOp_Caps::add(RGWRados *store, RGWUserAdminOpState& op_state,
   ret = user.info(info, NULL);
   if (ret < 0)
     return ret;
+
+  flusher.start(0);
 
   info.caps.dump(formatter);
   flusher.flush();
@@ -2182,8 +2190,6 @@ int RGWUserAdminOp_Caps::remove(RGWRados *store, RGWUserAdminOpState& op_state,
 
   Formatter *formatter = flusher.get_formatter();
 
-  flusher.start(0);
-
   ret = user.caps->remove(op_state, NULL);
   if (ret < 0)
     return ret;
@@ -2191,6 +2197,8 @@ int RGWUserAdminOp_Caps::remove(RGWRados *store, RGWUserAdminOpState& op_state,
   ret = user.info(info, NULL);
   if (ret < 0)
     return ret;
+
+  flusher.start(0);
 
   info.caps.dump(formatter);
   flusher.flush();

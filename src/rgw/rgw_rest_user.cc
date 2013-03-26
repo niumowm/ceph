@@ -161,7 +161,6 @@ void RGWOp_User_Modify::execute()
   RESTArgs::get_uint32(s, "max-buckets", RGW_DEFAULT_MAX_BUCKETS, &max_buckets);
   RESTArgs::get_string(s, "key-type", key_type_str, &key_type_str);
 
-  // FIXME: don't do double argument checking
   if (!uid.empty())
     op_state.set_user_id(uid);
 
