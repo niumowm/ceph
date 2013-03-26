@@ -501,7 +501,6 @@ int main(int argc, char **argv)
   int check_objects = false;
   RGWUserAdminOpState user_op;
   RGWBucketAdminOpState bucket_op;
-  RGWStreamFlusher f(formatter, cout);
 
   std::string val;
   std::ostringstream errs;
@@ -638,6 +637,8 @@ int main(int argc, char **argv)
     cerr << "unrecognized format: " << format << std::endl;
     return usage();
   }
+
+  RGWStreamFlusher f(formatter, cout);
 
   store = RGWStoreManager::get_storage(g_ceph_context, false);
   if (!store) {
