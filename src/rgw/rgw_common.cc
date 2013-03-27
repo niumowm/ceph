@@ -452,13 +452,7 @@ int XMLArgs::parse()
           (name.compare("partNumber") == 0) ||
           (name.compare("uploadId") == 0) ||
           (name.compare("versionId") == 0) ||
-          (name.compare("torrent") == 0) ||
-          (name.compare("subuser") == 0) ||
-          (name.compare("key") == 0) ||
-          (name.compare("caps") == 0) ||
-          (name.compare("index") == 0) ||
-          (name.compare("policy") == 0) ||
-          (name.compare("object") == 0)) {
+          (name.compare("torrent") == 0)) {
         sub_resources[name] = val;
       } else if (name[0] == 'r') { // root of all evil
         if ((name.compare("response-content-type") == 0) ||
@@ -470,6 +464,13 @@ int XMLArgs::parse()
 	  sub_resources[name] = val;
 	  has_resp_modifier = true;
 	}
+      } else if  ((name.compare("subuser") == 0) ||
+          (name.compare("key") == 0) ||
+          (name.compare("caps") == 0) ||
+          (name.compare("index") == 0) ||
+          (name.compare("policy") == 0) ||
+          (name.compare("object") == 0)) {
+        sub_resources[name] = ""; 
       }
     }
 
