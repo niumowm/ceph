@@ -1722,11 +1722,11 @@ int RGWHandler_ObjStore_S3::init(RGWRados *store, struct req_state *s, RGWClient
 
 // subresources that we shouldn't include in the uri to sign
 static const char *nonsigned_subresources[] = {
-  "keys",
-  "subusers",
+  "key",
+  "subuser",
   "caps",
   "index",
-  "objects",
+  "object",
   "policy",
   NULL
 };
