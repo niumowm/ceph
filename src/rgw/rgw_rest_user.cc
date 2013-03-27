@@ -597,10 +597,10 @@ RGWOp *RGWHandler_User::op_get()
 
 RGWOp *RGWHandler_User::op_put()
 {
-  if (s->args.sub_resource_exists("subusers"))
+  if (s->args.sub_resource_exists("subuser"))
     return new RGWOp_Subuser_Create;
 
-  if (s->args.sub_resource_exists("keys"))
+  if (s->args.sub_resource_exists("key"))
     return new RGWOp_Key_Create;
 
   if (s->args.sub_resource_exists("caps"))
@@ -611,7 +611,7 @@ RGWOp *RGWHandler_User::op_put()
 
 RGWOp *RGWHandler_User::op_post()
 {
-  if (s->args.sub_resource_exists("subusers"))
+  if (s->args.sub_resource_exists("subuser"))
     return new RGWOp_Subuser_Modify;
 
   return new RGWOp_User_Modify;
@@ -619,10 +619,10 @@ RGWOp *RGWHandler_User::op_post()
 
 RGWOp *RGWHandler_User::op_delete()
 {
-  if (s->args.sub_resource_exists("subusers"))
+  if (s->args.sub_resource_exists("subuser"))
     return new RGWOp_Subuser_Remove;
 
-  if (s->args.sub_resource_exists("keys"))
+  if (s->args.sub_resource_exists("key"))
     return new RGWOp_Key_Remove;
 
   if (s->args.sub_resource_exists("caps"))
