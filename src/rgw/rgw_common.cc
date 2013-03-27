@@ -453,12 +453,12 @@ int XMLArgs::parse()
           (name.compare("uploadId") == 0) ||
           (name.compare("versionId") == 0) ||
           (name.compare("torrent") == 0) ||
-          (name.compare("subusers") == 0) ||
-          (name.compare("keys") == 0) ||
+          (name.compare("subuser") == 0) ||
+          (name.compare("key") == 0) ||
           (name.compare("caps") == 0) ||
           (name.compare("index") == 0) ||
           (name.compare("policy") == 0) ||
-          (name.compare("objects") == 0)) {
+          (name.compare("object") == 0)) {
         sub_resources[name] = val;
       } else if (name[0] == 'r') { // root of all evil
         if ((name.compare("response-content-type") == 0) ||
