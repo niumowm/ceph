@@ -2332,7 +2332,6 @@ reprotect_and_return_err:
     uint64_t period = ictx->get_stripe_period();
     uint64_t left = mylen;
 
-    start_time = ceph_clock_now(ictx->cct);
     while (left > 0) {
       uint64_t period_off = off - (off % period);
       uint64_t read_len = min(period_off + period - off, left);
@@ -2426,7 +2425,6 @@ reprotect_and_return_err:
       off += read_len;
     }
 
-    elapsed = ceph_clock_now(ictx->cct) - start_time;
     return total_read;
   }
 
