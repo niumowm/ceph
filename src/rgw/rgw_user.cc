@@ -690,8 +690,9 @@ int RGWAccessKeyPool::generate_key(RGWUserAdminOpState& op_state, std::string *e
     return -EEXIST;
   }
 
-  if (!gen_access)
+  if (!gen_access) {
     id = op_state.get_access_key();
+  }
 
   if (!id.empty()) {
     switch (key_type) {
@@ -701,8 +702,8 @@ int RGWAccessKeyPool::generate_key(RGWUserAdminOpState& op_state, std::string *e
         return -EEXIST;
       }
     case KEY_TYPE_S3:
-      if (rgw_get_user_info_by_swift(store, id, duplicate_check) >= 0) {
-        set_err_msg(err_msg, "existing s3 key in RGW system:" + id);
+      if (rgw_get_user_info_by_access_key(store, id, duplicate_check) >= 0) {
+        set_err_msg(err_msg, "existing S3 key in RGW system:" + id);
         return -EEXIST;
       }
     }
@@ -767,10 +768,11 @@ int RGWAccessKeyPool::generate_key(RGWUserAdminOpState& op_state, std::string *e
   key_pair.first = id;
   key_pair.second = new_key;
 
-  if (key_type == KEY_TYPE_S3)
+  if (key_type == KEY_TYPE_S3) {
     access_keys->insert(key_pair);
-  else if (key_type == KEY_TYPE_SWIFT)
+  } else if (key_type == KEY_TYPE_SWIFT) {
     swift_keys->insert(key_pair);
+  }
 
   return 0;
 }
@@ -831,14 +833,15 @@ int RGWAccessKeyPool::modify_key(RGWUserAdminOpState& op_state, std::string *err
 
   // update the access key with the new secret key
   modify_key.key = key;
+
   key_pair.second = modify_key;
 
 
-  if (key_type == KEY_TYPE_S3)
-    access_keys->insert(key_pair);
-
-  else if (key_type == KEY_TYPE_SWIFT)
-    swift_keys->insert(key_pair);
+  if (key_type == KEY_TYPE_S3) {
+    (*access_keys)[id] = modify_key;
+  } else if (key_type == KEY_TYPE_SWIFT) {
+    (*swift_keys)[id] = modify_key;
+  }
 
   return 0;
 }
@@ -1461,14 +1464,6 @@ int RGWUser::init(RGWUserAdminOpState& op_state)
   if (!access_key.empty() && !found)
     found = (rgw_get_user_info_by_access_key(store, access_key, user_info) >= 0);
 
-  if (found) {
-    if ( (!uid.empty() && uid != user_info.user_id) ||
-         (!user_email.empty() && user_email != user_info.user_email)) {
-      user_info.clear();
-      found = false;
-    }
-  }
-
   op_state.set_existing_user(found);
   if (found) {
     op_state.set_user_info(user_info);
@@ -1758,7 +1753,6 @@ int RGWUser::execute_modify(RGWUserAdminOpState& op_state, std::string *err_msg)
   bool populated = op_state.is_populated();
   bool defer_user_update = true;
   int ret = 0;
-
   std::string subprocess_msg;
   std::string op_email = op_state.get_user_email();
   std::string display_name = op_state.get_display_name();
@@ -1790,20 +1784,20 @@ int RGWUser::execute_modify(RGWUserAdminOpState& op_state, std::string *err_msg)
   user_info = old_info;
 
   std::string old_email = old_info.user_email;
-  if (!old_email.empty()) {
+  if (!op_email.empty()) {
     same_email = (old_email.compare(op_email) == 0);
 
   // make sure we are not adding a duplicate email
     if (!same_email) {
       ret = rgw_get_user_info_by_email(store, op_email, duplicate_check);
-      if (ret >= 0) {
+      if (ret >= 0 && duplicate_check.user_id != user_id) {
         set_err_msg(err_msg, "cannot add duplicate email");
         return -EEXIST;
       }
-
-      user_info.user_email = op_email;
     }
+    user_info.user_email = op_email;
   }
+
 
   // update the remaining user info
   if (!display_name.empty())
@@ -1812,7 +1806,9 @@ int RGWUser::execute_modify(RGWUserAdminOpState& op_state, std::string *err_msg)
   // will be set to RGW_DEFAULT_MAX_BUCKETS by default
   uint32_t max_buckets = op_state.get_max_buckets();
 
-  if (max_buckets != RGW_DEFAULT_MAX_BUCKETS)
+  ldout(store->ctx(), 0) << "max_buckets=" << max_buckets << " specified=" << op_state.max_buckets_specified << dendl;
+
+  if (op_state.max_buckets_specified)
     user_info.max_buckets = max_buckets;
 
   if (op_state.has_suspension_op()) {
@@ -1847,6 +1843,7 @@ int RGWUser::execute_modify(RGWUserAdminOpState& op_state, std::string *err_msg)
       return ret;
     }
   }
+  op_state.set_user_info(user_info);
 
   // if we're supposed to modify keys, do so
   if (op_state.has_key_op()) {
@@ -1856,8 +1853,6 @@ int RGWUser::execute_modify(RGWUserAdminOpState& op_state, std::string *err_msg)
       return ret;
     }
   }
-
-  op_state.set_user_info(user_info);
 
   ret = update(op_state, err_msg);
   if (ret < 0)

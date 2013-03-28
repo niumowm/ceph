@@ -257,6 +257,7 @@ struct RGWUserAdminOpState {
   }
   void set_max_buckets(uint32_t mb) {
     max_buckets = mb;
+    max_buckets_specified = true;
   }
   void set_gen_access() {
     gen_access = true;
@@ -321,7 +322,7 @@ struct RGWUserAdminOpState {
   std::string get_user_email() { return user_email; };
   std::string get_display_name() { return display_name; };
 
-  RGWUserInfo get_user_info() { return info; };
+  RGWUserInfo&  get_user_info() { return info; };
 
   map<std::string, RGWAccessKey> *get_swift_keys() { return &info.swift_keys; };
   map<std::string, RGWAccessKey> *get_access_keys() { return &info.access_keys; };
