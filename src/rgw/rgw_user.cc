@@ -622,8 +622,7 @@ bool RGWAccessKeyPool::check_existing_key(RGWUserAdminOpState& op_state)
     }
   }
 
-  if (existing_key)
-    op_state.set_existing_key();
+  op_state.set_existing_key(existing_key);
 
   return existing_key;
 }
@@ -1051,8 +1050,7 @@ int RGWSubUserPool::check_op(RGWUserAdminOpState& op_state,
   if (!subuser.empty())
     existing = exists(subuser);
 
-  if (existing)
-    op_state.set_existing_subuser();
+  op_state.set_existing_subuser(existing);
 
   return 0;
 }
@@ -1077,7 +1075,7 @@ int RGWSubUserPool::execute_add(RGWUserAdminOpState& op_state,
 
   // assumes key should be created
   if (op_state.has_key_op()) {
-    ret = user->keys->add(op_state, &subprocess_msg, true);
+    ret = user->keys.add(op_state, &subprocess_msg, true);
     if (ret < 0) {
       set_err_msg(err_msg, "unable to create subuser key, " + subprocess_msg);
       return ret;
@@ -1147,7 +1145,7 @@ int RGWSubUserPool::execute_remove(RGWUserAdminOpState& op_state,
 
   if (op_state.will_purge_keys()) {
     // error would be non-existance so don't check
-    user->keys->remove(op_state, &subprocess_msg, true);
+    user->keys.remove(op_state, &subprocess_msg, true);
   }
 
   //remove the subuser from the user info
@@ -1209,7 +1207,7 @@ int RGWSubUserPool::execute_modify(RGWUserAdminOpState& op_state, std::string *e
   subuser = siter->second;
 
   if (op_state.has_key_op()) {
-    ret = user->keys->add(op_state, &subprocess_msg, true);
+    ret = user->keys.add(op_state, &subprocess_msg, true);
     if (ret < 0) {
       set_err_msg(err_msg, "unable to create subuser keys, " + subprocess_msg);
       return ret;
@@ -1382,7 +1380,7 @@ int RGWUserCapPool::remove(RGWUserAdminOpState& op_state, std::string *err_msg, 
   return 0;
 }
 
-RGWUser::RGWUser()
+RGWUser::RGWUser() : caps(this), keys(this), subusers(this)
 {
   init_default();
 }
@@ -1404,9 +1402,6 @@ int RGWUser::init(RGWRados *storage, RGWUserAdminOpState& op_state)
 
 RGWUser::~RGWUser()
 {
-  delete keys;
-  delete caps;
-  delete subusers;
 }
 
 void RGWUser::init_default()
@@ -1416,10 +1411,6 @@ void RGWUser::init_default()
   user_id = RGW_USER_ANON_ID;
 
   clear_populated();
-
-  keys = NULL;
-  caps = NULL;
-  subusers = NULL;
 }
 
 int RGWUser::init_storage(RGWRados *storage)
@@ -1432,14 +1423,10 @@ int RGWUser::init_storage(RGWRados *storage)
 
   clear_populated();
 
-  delete keys;
-  delete caps;
-  delete subusers;
-
   /* API wrappers */
-  keys = new RGWAccessKeyPool(this);
-  caps = new RGWUserCapPool(this);
-  subusers = new RGWSubUserPool(this);
+  keys = RGWAccessKeyPool(this);
+  caps = RGWUserCapPool(this);
+  subusers = RGWSubUserPool(this);
 
   return 0;
 }
@@ -1482,8 +1469,8 @@ int RGWUser::init(RGWUserAdminOpState& op_state)
     }
   }
 
+  op_state.set_existing_user(found);
   if (found) {
-    op_state.set_existing_user();
     op_state.set_user_info(user_info);
     op_state.set_populated();
 
@@ -1506,18 +1493,15 @@ int RGWUser::init_members(RGWUserAdminOpState& op_state)
 {
   int ret = 0;
 
-  if (!keys || !subusers || !caps)
-    return -EINVAL;
-
-  ret = keys->init(op_state);
+  ret = keys.init(op_state);
   if (ret < 0)
     return ret;
 
-  ret = subusers->init(op_state);
+  ret = subusers.init(op_state);
   if (ret < 0)
     return ret;
 
-  ret = caps->init(op_state);
+  ret = caps.init(op_state);
   if (ret < 0)
     return ret;
 
@@ -1587,14 +1571,6 @@ int RGWUser::check_op(RGWUserAdminOpState& op_state, std::string *err_msg)
     return -EINVAL;
   }
 
-/*
-  // check for an existing user email
-  if (!op_email.empty())
-    existing_email = (rgw_get_user_info_by_email(store, op_email, user_info) >= 0);
-
-  if (existing_email)
-    op_state.set_existing_email();
-*/
   return 0;
 }
 
@@ -1664,7 +1640,7 @@ int RGWUser::execute_add(RGWUserAdminOpState& op_state, std::string *err_msg)
 
   // see if we need to add an access key
   if (op_state.has_key_op()) {
-    ret = keys->add(op_state, &subprocess_msg, defer_user_update);
+    ret = keys.add(op_state, &subprocess_msg, defer_user_update);
     if (ret < 0) {
       set_err_msg(err_msg, "unable to create access key, " + subprocess_msg);
       return ret;
@@ -1673,7 +1649,7 @@ int RGWUser::execute_add(RGWUserAdminOpState& op_state, std::string *err_msg)
 
   // see if we need to add some caps
   if (op_state.has_caps_op()) {
-    ret = caps->add(op_state, &subprocess_msg, defer_user_update);
+    ret = caps.add(op_state, &subprocess_msg, defer_user_update);
     if (ret < 0) {
       set_err_msg(err_msg, "unable to add user capabilities, " + subprocess_msg);
       return ret;
@@ -1874,7 +1850,7 @@ int RGWUser::execute_modify(RGWUserAdminOpState& op_state, std::string *err_msg)
 
   // if we're supposed to modify keys, do so
   if (op_state.has_key_op()) {
-    ret = keys->add(op_state, &subprocess_msg, defer_user_update);
+    ret = keys.add(op_state, &subprocess_msg, defer_user_update);
     if (ret < 0) {
       set_err_msg(err_msg, "unable to create or modify keys, " + subprocess_msg);
       return ret;
@@ -2041,7 +2017,7 @@ int RGWUserAdminOp_Subuser::create(RGWRados *store, RGWUserAdminOpState& op_stat
 
   Formatter *formatter = flusher.get_formatter();
 
-  ret = user.subusers->add(op_state, NULL);
+  ret = user.subusers.add(op_state, NULL);
   if (ret < 0)
     return ret;
 
@@ -2068,7 +2044,7 @@ int RGWUserAdminOp_Subuser::modify(RGWRados *store, RGWUserAdminOpState& op_stat
 
   Formatter *formatter = flusher.get_formatter();
 
-  ret = user.subusers->modify(op_state, NULL);
+  ret = user.subusers.modify(op_state, NULL);
   if (ret < 0)
     return ret;
 
@@ -2094,7 +2070,7 @@ int RGWUserAdminOp_Subuser::remove(RGWRados *store, RGWUserAdminOpState& op_stat
     return ret;
 
 
-  ret = user.subusers->remove(op_state, NULL);
+  ret = user.subusers.remove(op_state, NULL);
   if (ret < 0)
     return ret;
 
@@ -2112,7 +2088,7 @@ int RGWUserAdminOp_Key::create(RGWRados *store, RGWUserAdminOpState& op_state,
 
   Formatter *formatter = flusher.get_formatter();
 
-  ret = user.keys->add(op_state, NULL);
+  ret = user.keys.add(op_state, NULL);
   if (ret < 0)
     return ret;
 
@@ -2145,7 +2121,7 @@ int RGWUserAdminOp_Key::remove(RGWRados *store, RGWUserAdminOpState& op_state,
     return ret;
 
 
-  ret = user.keys->remove(op_state, NULL);
+  ret = user.keys.remove(op_state, NULL);
   if (ret < 0)
     return ret;
 
@@ -2163,7 +2139,7 @@ int RGWUserAdminOp_Caps::add(RGWRados *store, RGWUserAdminOpState& op_state,
 
   Formatter *formatter = flusher.get_formatter();
 
-  ret = user.caps->add(op_state, NULL);
+  ret = user.caps.add(op_state, NULL);
   if (ret < 0)
     return ret;
 
@@ -2190,7 +2166,7 @@ int RGWUserAdminOp_Caps::remove(RGWRados *store, RGWUserAdminOpState& op_state,
 
   Formatter *formatter = flusher.get_formatter();
 
-  ret = user.caps->remove(op_state, NULL);
+  ret = user.caps.remove(op_state, NULL);
   if (ret < 0)
     return ret;
 

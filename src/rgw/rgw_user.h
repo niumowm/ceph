@@ -302,12 +302,12 @@ struct RGWUserAdminOpState {
   void set_populated() { populated = true; };
   void clear_populated() { populated = false; };
   void set_initialized() { initialized = true; };
-  void set_existing_user() { existing_user = true; };
-  void set_existing_key() { existing_key = true; };
-  void set_existing_subuser() { existing_subuser = true; };
-  void set_existing_email() { existing_email = true; };
-  void set_purge_data() { purge_data = true; };
-  void set_generate_subuser() { gen_subuser = true; };
+  void set_existing_user(bool flag) { existing_user = flag; };
+  void set_existing_key(bool flag) { existing_key = flag; };
+  void set_existing_subuser(bool flag) { existing_subuser = flag; };
+  void set_existing_email(bool flag) { existing_email = flag; };
+  void set_purge_data(bool flag) { purge_data = flag; };
+  void set_generate_subuser(bool flag) { gen_subuser = flag; };
   __u8 get_suspension_status() { return suspended; };
   int32_t get_key_type() {return key_type; };
   uint32_t get_subuser_perm() { return perm_mask; };
@@ -544,9 +544,9 @@ public:
   RGWRados *get_store() { return store; };
 
   /* API Contracted Members */
-  RGWUserCapPool *caps;
-  RGWAccessKeyPool *keys;
-  RGWSubUserPool *subusers;
+  RGWUserCapPool caps;
+  RGWAccessKeyPool keys;
+  RGWSubUserPool subusers;
 
   /* API Contracted Methods */
   int add(RGWUserAdminOpState& op_state, std::string *err_msg = NULL);

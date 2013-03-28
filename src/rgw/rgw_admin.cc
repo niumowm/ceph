@@ -673,8 +673,7 @@ int main(int argc, char **argv)
   if (!caps.empty())
     user_op.set_caps(caps);
 
-  if (purge_data)
-    user_op.set_purge_data();
+  user_op.set_purge_data(purge_data);
 
   if (purge_keys)
     user_op.set_purge_keys();
@@ -750,7 +749,7 @@ int main(int argc, char **argv)
 
     break;
   case OPT_SUBUSER_CREATE:
-    ret = user.subusers->add(user_op, &err_msg);
+    ret = user.subusers.add(user_op, &err_msg);
     if (ret < 0) {
       cerr << "could not create subuser: " << err_msg << std::endl;
       return -ret;
@@ -758,7 +757,7 @@ int main(int argc, char **argv)
 
     break;
   case OPT_SUBUSER_MODIFY:
-    ret = user.subusers->modify(user_op, &err_msg);
+    ret = user.subusers.modify(user_op, &err_msg);
     if (ret < 0) {
       cerr << "could not modify subuser: " << err_msg << std::endl;
       return -ret;
@@ -774,7 +773,7 @@ int main(int argc, char **argv)
 
     break;
   case OPT_SUBUSER_RM:
-    ret = user.subusers->remove(user_op, &err_msg);
+    ret = user.subusers.remove(user_op, &err_msg);
     if (ret < 0) {
       cerr << "could not remove subuser: " << err_msg << std::endl;
       return -ret;
@@ -782,7 +781,7 @@ int main(int argc, char **argv)
 
     break;
   case OPT_CAPS_ADD:
-    ret = user.caps->add(user_op, &err_msg);
+    ret = user.caps.add(user_op, &err_msg);
     if (ret < 0) {
       cerr << "could not add caps: " << err_msg << std::endl;
       return -ret;
@@ -790,7 +789,7 @@ int main(int argc, char **argv)
 
     break;
   case OPT_CAPS_RM:
-    ret = user.caps->remove(user_op, &err_msg);
+    ret = user.caps.remove(user_op, &err_msg);
     if (ret < 0) {
       cerr << "could not add remove caps: " << err_msg << std::endl;
       return -ret;
@@ -798,7 +797,7 @@ int main(int argc, char **argv)
 
     break;
   case OPT_KEY_CREATE:
-    ret = user.keys->add(user_op, &err_msg);
+    ret = user.keys.add(user_op, &err_msg);
     if (ret < 0) {
       cerr << "could not create key: " << err_msg << std::endl;
       return -ret;
@@ -806,7 +805,7 @@ int main(int argc, char **argv)
 
     break;
   case OPT_KEY_RM:
-    ret = user.keys->remove(user_op, &err_msg);
+    ret = user.keys.remove(user_op, &err_msg);
     if (ret < 0) {
       cerr << "could not remove key: " << err_msg << std::endl;
       return -ret;

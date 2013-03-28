@@ -228,8 +228,7 @@ void RGWOp_User_Remove::execute()
   if (!uid.empty())
     op_state.set_user_id(uid);
 
-  if (purge_data)
-    op_state.set_purge_data();
+  op_state.set_purge_data(purge_data);
 
   http_ret = RGWUserAdminOp_User::remove(store, op_state, flusher);
 }
@@ -287,8 +286,7 @@ void RGWOp_Subuser_Create::execute()
   if (perm_mask != 0)
     op_state.set_perm(perm_mask);
 
-  if (gen_subuser)
-    op_state.set_generate_subuser();
+  op_state.set_generate_subuser(gen_subuser);
 
   if (gen_secret)
     op_state.set_gen_secret();
