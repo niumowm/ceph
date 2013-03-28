@@ -920,8 +920,9 @@ int RGWBucketAdminOp::info(RGWRados *store, RGWBucketAdminOpState& op_state,
 
     for (iter = m.begin(); iter != m.end(); ++iter) {
       std::string  obj_name = iter->first;
-      formatter->dump_string("bucket", obj_name);
-      if (show_stats)
+      if (!show_stats)
+        formatter->dump_string("bucket", obj_name);
+      else
         bucket_stats(store, obj_name, formatter);
 
     }
