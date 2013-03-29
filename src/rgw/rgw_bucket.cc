@@ -420,6 +420,7 @@ int RGWBucket::init(RGWRados *storage, RGWBucketAdminOpState& op_state)
       return r;
 
     op_state.set_user_buckets(user_buckets);
+    op_state.display_name = info.display_name;
   }
 
   clear_failure();
@@ -454,6 +455,7 @@ int RGWBucket::link(RGWBucketAdminOpState& op_state, std::string *err_msg)
       set_err_msg(err_msg, "couldn't decode policy");
       return -EIO;
     }
+
     r = rgw_remove_user_bucket_info(store, owner.get_id(), bucket);
     if (r < 0) {
       set_err_msg(err_msg, "could not unlink policy from user " + owner.get_id());
@@ -463,26 +465,33 @@ int RGWBucket::link(RGWBucketAdminOpState& op_state, std::string *err_msg)
     // now update the user for the bucket...
     if (display_name.empty()) {
       ldout(store->ctx(), 0) << "WARNING: user " << user_id << " has no display name set" << dendl;
-    } else {
-      policy.create_default(user_id, display_name);
+    } 
+    policy.create_default(user_id, display_name);
 
-      // ...and encode the acl
-      aclbl.clear();
-      policy.encode(aclbl);
-
-      r = store->set_attr(NULL, obj, RGW_ATTR_ACL, aclbl);
-      if (r < 0)
-	return r;
-
-      r = rgw_add_bucket(store, user_id, bucket);
-      if (r < 0)
-	return r;
+    owner = policy.get_owner();
+    r = store->set_bucket_owner(bucket, owner);
+    if (r < 0) {
+      set_err_msg(err_msg, "failed to set bucket owner: " + cpp_strerror(-r));
+      return r;
     }
+
+    // ...and encode the acl
+    aclbl.clear();
+    policy.encode(aclbl);
+
+    r = store->set_attr(NULL, obj, RGW_ATTR_ACL, aclbl);
+    if (r < 0)
+      return r;
+
+    r = rgw_add_bucket(store, user_id, bucket);
+    if (r < 0)
+      return r;
   } else {
     // the bucket seems not to exist, so we should probably create it...
     r = create_bucket(bucket_name.c_str(), uid_str, display_name);
-    if (r < 0)
+    if (r < 0) {
       set_err_msg(err_msg, "error linking bucket to user r=" + cpp_strerror(-r));
+    }
 
     return r;
   }
