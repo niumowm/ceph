@@ -460,6 +460,20 @@ public:
   }
 };
 
+static int init_bucket(string& bucket_name, rgw_bucket& bucket)
+{
+  if (!bucket_name.empty()) {
+    RGWBucketInfo bucket_info;
+    int r = store->get_bucket_info(NULL, bucket_name, bucket_info);
+    if (r < 0) {
+      cerr << "could not get bucket info for bucket=" << bucket_name << std::endl;
+      return r;
+    }
+    bucket = bucket_info.bucket;
+  }
+  return 0;
+}
+
 int main(int argc, char **argv) 
 {
   vector<const char*> args;
@@ -1106,18 +1120,28 @@ next:
   }
 
   if (opt_cmd == OPT_OBJECT_RM) {
-    int ret = rgw_remove_object(store, bucket, object);
+    int ret = init_bucket(bucket_name, bucket);
+    if (ret < 0) {
+      cerr << "ERROR: could not init bucket: " << cpp_strerror(-ret) << std::endl;
+      return -ret;
+    }
+    ret = rgw_remove_object(store, bucket, object);
 
     if (ret < 0) {
       cerr << "ERROR: object remove returned: " << cpp_strerror(-ret) << std::endl;
-      return 1;
+      return -ret;
     }
   }
 
   if (opt_cmd == OPT_OBJECT_UNLINK) {
+    int ret = init_bucket(bucket_name, bucket);
+    if (ret < 0) {
+      cerr << "ERROR: could not init bucket: " << cpp_strerror(-ret) << std::endl;
+      return -ret;
+    }
     list<string> oid_list;
     oid_list.push_back(object);
-    int ret = store->remove_objs_from_index(bucket, oid_list);
+    ret = store->remove_objs_from_index(bucket, oid_list);
     if (ret < 0) {
       cerr << "ERROR: remove_obj_from_index() returned error: " << cpp_strerror(-ret) << std::endl;
       return 1;
