@@ -1441,6 +1441,7 @@ int RGWUser::init(RGWUserAdminOpState& op_state)
   std::string uid = op_state.get_user_id();
   std::string user_email = op_state.get_user_email();
   std::string access_key = op_state.get_access_key();
+  std::string subuser = op_state.get_subuser();
 
   int key_type = op_state.get_key_type();
   if (key_type == KEY_TYPE_SWIFT) {
@@ -1451,6 +1452,14 @@ int RGWUser::init(RGWUserAdminOpState& op_state)
   RGWUserInfo user_info;
 
   clear_populated();
+
+  if (uid.empty() && !subuser.empty()) {
+    size_t pos = subuser.find(':');
+    if (pos != string::npos) {
+      uid = subuser.substr(0, pos);
+      op_state.set_user_id(uid);
+    }
+  }
 
   if (!uid.empty() && (uid.compare(RGW_USER_ANON_ID) != 0))
     found = (rgw_get_user_info_by_uid(store, uid, user_info) >= 0);
