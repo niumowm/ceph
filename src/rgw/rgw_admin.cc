@@ -701,14 +701,16 @@ int main(int argc, char **argv)
 
   // RGWUser to use for user operations
   RGWUser user;
-  int ret = user.init(store, user_op);
-  if (ret < 0) {
-    cerr << "user.init failed: " << cpp_strerror(-ret) << std::endl;
-    return -ret;
+  int ret = 0;
+  if (!user_id.empty()) {
+    ret = user.init(store, user_op);
+    if (ret < 0) {
+      cerr << "user.init failed: " << cpp_strerror(-ret) << std::endl;
+      return -ret;
+    }
   }
 
-
-  /* populate user operation */
+  /* populate bucket operation */
   bucket_op.set_bucket_name(bucket_name);
   bucket_op.set_check_objects(check_objects);
   bucket_op.set_delete_children(delete_child_objects);

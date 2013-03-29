@@ -901,7 +901,6 @@ int RGWBucketAdminOp::info(RGWRados *store, RGWBucketAdminOpState& op_state,
                   RGWFormatterFlusher& flusher)
 {
   RGWBucket bucket;
-
   int ret = bucket.init(store, op_state);
   if (ret < 0)
     return ret;
@@ -910,10 +909,10 @@ int RGWBucketAdminOp::info(RGWRados *store, RGWBucketAdminOpState& op_state,
   Formatter *formatter = flusher.get_formatter();
   flusher.start(0);
 
-  formatter->open_array_section("buckets");
-
   bool show_stats = op_state.will_fetch_stats();
   if (op_state.is_user_op()) {
+    formatter->open_array_section("buckets");
+
     RGWUserBuckets buckets = op_state.get_user_buckets();
     map<string, RGWBucketEnt>& m = buckets.get_buckets();
     map<string, RGWBucketEnt>::iterator iter;
@@ -925,6 +924,8 @@ int RGWBucketAdminOp::info(RGWRados *store, RGWBucketAdminOpState& op_state,
         bucket_stats(store, obj_name, formatter);
 
     }
+
+    formatter->close_section();
   } else if (!bucket_name.empty()) {
     bucket_stats(store, bucket_name, formatter);
   } else {
@@ -940,7 +941,6 @@ int RGWBucketAdminOp::info(RGWRados *store, RGWBucketAdminOpState& op_state,
     }
   }
 
-  formatter->close_section();
   flusher.flush();
 
   return 0;
