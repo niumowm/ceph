@@ -784,6 +784,8 @@ int RGWBucketAdminOp::get_policy(RGWRados *store, RGWBucketAdminOpState& op_stat
 
   formatter->dump_string("policy", policy_stream.str());
 
+  flusher.flush();
+
   return 0;
 }
 
