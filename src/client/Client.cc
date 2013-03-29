@@ -1882,6 +1882,7 @@ void Client::handle_mds_map(MMDSMap* m)
       if (oldstate < MDSMap::STATE_ACTIVE) {
 	kick_requests(p->second, false);
 	kick_flushing_caps(p->second);
+	kick_maxsize_caps_requests(p->second, p->first);
 	signal_cond_list(p->second->waiting_for_open);
       }
       connect_mds_targets(p->first);
@@ -2328,6 +2329,11 @@ void Client::send_cap(Inode *in, MetaSession *session, Cap *cap,
   m->set_snap_follows(follows);
   cap->wanted = want;
   if (cap == in->auth_cap) {
+    if (in->wanted_max_size > 0 && in->requested_max_size != in->wanted_max_size) {
+      // keep track of max size requested caps on session until
+      // we get a cap grant so that we can re-request on reconnect
+      session->maxsize_caps.push_back(&in->maxsize_cap_item);
+    }
     m->set_max_size(in->wanted_max_size);
     in->requested_max_size = in->wanted_max_size;
     ldout(cct, 15) << "auth cap, setting max_size = " << in->requested_max_size << dendl;
@@ -3027,6 +3033,15 @@ void Client::kick_flushing_caps(MetaSession *session)
   }
 }
 
+void Client::kick_maxsize_caps_requests(MetaSession *session, int mds)
+{
+  for (xlist<Inode*>::iterator p = session->maxsize_caps.begin(); !p.end(); ++p) {
+    Inode *in = *p;
+    ldout(cct, 20) << " re-requesting max size update on " << *in << " to mds." << mds << dendl;
+    flush_caps(in, session);
+  }
+}
+
 void SnapRealm::build_snap_context()
 {
   set<snapid_t> snaps;
@@ -3546,6 +3561,7 @@ void Client::handle_cap_grant(MetaSession *session, Inode *in, Cap *cap, MClient
     if (in->max_size > in->wanted_max_size) {
       in->wanted_max_size = 0;
       in->requested_max_size = 0;
+      in->maxsize_cap_item.remove_myself();
     }
   }
 

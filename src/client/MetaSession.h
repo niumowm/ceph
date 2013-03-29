@@ -42,6 +42,7 @@ struct MetaSession {
   xlist<CapSnap*> flushing_capsnaps;
   xlist<MetaRequest*> requests;
   xlist<MetaRequest*> unsafe_requests;
+  xlist<Inode*> maxsize_caps;
 
   MClientCapRelease *release;
   
