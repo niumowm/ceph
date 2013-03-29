@@ -4313,6 +4313,8 @@ void PG::_compare_scrubmaps(const map<int,ScrubMap*> &maps,
     set<int> cur_missing;
     set<int> cur_inconsistent;
     for (j = maps.begin(); j != maps.end(); ++j) {
+      if (j == auth)
+	continue;
       if (j->second->objects.count(*k)) {
 	// Compare
 	stringstream ss;
