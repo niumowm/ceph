@@ -1156,6 +1156,46 @@ next:
     RGWBucketAdminOp::remove_bucket(store, bucket_op);
   }
 
+  if (opt_cmd == OPT_GC_LIST) {
+    int ret;
+    int index = 0;
+    string marker;
+    bool truncated;
+    formatter->open_array_section("entries");
+
+    do {
+      list<cls_rgw_gc_obj_info> result;
+      ret = store->list_gc_objs(&index, marker, 1000, result, &truncated);
+      if (ret < 0) {
+	cerr << "ERROR: failed to list objs: " << cpp_strerror(-ret) << std::endl;
+	return 1;
+      }
+
+
+      list<cls_rgw_gc_obj_info>::iterator iter;
+      for (iter = result.begin(); iter != result.end(); ++iter) {
+	cls_rgw_gc_obj_info& info = *iter;
+	formatter->open_object_section("chain_info");
+	formatter->dump_string("tag", info.tag);
+	formatter->dump_stream("time") << info.time;
+	formatter->open_array_section("objs");
+        list<cls_rgw_obj>::iterator liter;
+	cls_rgw_obj_chain& chain = info.chain;
+	for (liter = chain.objs.begin(); liter != chain.objs.end(); ++liter) {
+	  cls_rgw_obj& obj = *liter;
+	  formatter->dump_string("pool", obj.pool);
+	  formatter->dump_string("oid", obj.oid);
+	  formatter->dump_string("key", obj.key);
+	}
+	formatter->close_section(); // objs
+	formatter->close_section(); // obj_chain
+	formatter->flush(cout);
+      }
+    } while (truncated);
+    formatter->close_section();
+    formatter->flush(cout);
+  }
+
   if (opt_cmd == OPT_GC_PROCESS) {
     int ret = store->process_gc();
     if (ret < 0) {
