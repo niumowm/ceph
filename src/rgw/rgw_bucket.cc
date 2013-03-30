@@ -734,7 +734,7 @@ int RGWBucket::check_index(RGWBucketAdminOpState& op_state,
   return 0;
 }
 
-int RGWBucket::get_policy(RGWBucketAdminOpState& op_state, ostringstream& o) 
+int RGWBucket::get_policy(RGWBucketAdminOpState& op_state, ostream& o) 
 {
   std::string object_name = op_state.get_object_name();
   rgw_bucket bucket = op_state.get_bucket();
@@ -759,25 +759,35 @@ int RGWBucket::get_policy(RGWBucketAdminOpState& op_state, ostringstream& o)
 }
 
 
+int RGWBucketAdminOp::get_policy(RGWRados *store, RGWBucketAdminOpState& op_state,
+                  ostream& os)
+{
+   RGWBucket bucket;
+
+  int ret = bucket.init(store, op_state);
+  if (ret < 0)
+    return ret;
+
+  ret = bucket.get_policy(op_state, os);
+  if (ret < 0)
+    return ret;
+
+  return 0;
+}
+
 /* Wrappers to facilitate RESTful interface */
 
 
 int RGWBucketAdminOp::get_policy(RGWRados *store, RGWBucketAdminOpState& op_state,
                   RGWFormatterFlusher& flusher)
 {
-  RGWBucket bucket;
+  std::ostringstream policy_stream;
 
-  int ret = bucket.init(store, op_state);
+  int ret = get_policy(store, op_state, policy_stream);
   if (ret < 0)
     return ret;
 
   Formatter *formatter = flusher.get_formatter();
-
-  std::ostringstream policy_stream;
-
-  ret = bucket.get_policy(op_state, policy_stream);
-  if (ret < 0)
-    return ret;
 
   flusher.start(0);
 
@@ -933,7 +943,6 @@ int RGWBucketAdminOp::info(RGWRados *store, RGWBucketAdminOpState& op_state,
         bucket_stats(store, obj_name, formatter);
       else
         formatter->dump_string("bucket", obj_name);
-
     }
 
     formatter->close_section();

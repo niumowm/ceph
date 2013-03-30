@@ -196,7 +196,7 @@ public:
   int unlink(RGWBucketAdminOpState& op_state, std::string *err_msg = NULL);
 
   int remove_object(RGWBucketAdminOpState& op_state, std::string *err_msg = NULL);
-  int get_policy(RGWBucketAdminOpState& op_state, ostringstream& o);
+  int get_policy(RGWBucketAdminOpState& op_state, ostream& o);
 
   void clear_failure() { failure = false; };
 };
@@ -206,6 +206,8 @@ class RGWBucketAdminOp
 public:
   static int get_policy(RGWRados *store, RGWBucketAdminOpState& op_state,
                   RGWFormatterFlusher& flusher);
+  static int get_policy(RGWRados *store, RGWBucketAdminOpState& op_state,
+                  ostream& os);
 
 
   static int unlink(RGWRados *store, RGWBucketAdminOpState& op_state);
