@@ -565,7 +565,6 @@ static void dump_bucket_usage(map<RGWObjCategory, RGWBucketStats>& stats, Format
     formatter->dump_int("size_kb_actual", s.num_kb_rounded);
     formatter->dump_int("num_objects", s.num_objects);
     formatter->close_section();
-    formatter->flush(cout);
   }
   formatter->close_section();
 }
