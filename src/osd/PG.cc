@@ -4256,15 +4256,27 @@ map<int, ScrubMap *>::const_iterator PG::_select_auth_object(
       // TODO: something is NOT better than nothing, do something like
       // unfound_lost if no valid copies can be found, or just mark unfound
       auth = j;
+      dout(10) << __func__ << ": selecting osd " << j->first
+	       << " for obj " << obj
+	       << ", auth == maps.end()"
+	       << dendl;
       continue;
     }
     if (i->second.read_error) {
       // scrub encountered read error, probably corrupt
+      dout(10) << __func__ << ": rejecting osd " << j->first
+	       << " for obj " << obj
+	       << ", read_error"
+	       << dendl;
       continue;
     }
     map<string, bufferptr>::iterator k = i->second.attrs.find(OI_ATTR);
-    if (k != i->second.attrs.end()) {
+    if (k == i->second.attrs.end()) {
       // no object info on object, probably corrupt
+      dout(10) << __func__ << ": rejecting osd " << j->first
+	       << " for obj " << obj
+	       << ", no oi attr"
+	       << dendl;
       continue;
     }
     bufferlist bl;
@@ -4274,13 +4286,25 @@ map<int, ScrubMap *>::const_iterator PG::_select_auth_object(
       bufferlist::iterator bliter = bl.begin();
       ::decode(oi, bliter);
     } catch (...) {
+      dout(10) << __func__ << ": rejecting osd " << j->first
+	       << " for obj " << obj
+	       << ", corrupt oi attr"
+	       << dendl;
       // invalid object info, probably corrupt
       continue;
     }
     if (oi.size != i->second.size) {
       // invalid size, probably corrupt
+      dout(10) << __func__ << ": rejecting osd " << j->first
+	       << " for obj " << obj
+	       << ", size mismatch"
+	       << dendl;
+      // invalid object info, probably corrupt
       continue;
     }
+    dout(10) << __func__ << ": selecting osd " << j->first
+	     << " for obj " << obj
+	     << dendl;
     auth = j;
   }
   return auth;
